@@ -5,9 +5,12 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
+const screen_mod = @import("screen.zig");
 
+const Stdout = std.io.stdout;
 const posix = std.posix;
 const linux = std.os.linux;
+const Screen = screen_mod.Screen;
 
 const Cursor = struct {
     row: usize,
@@ -26,45 +29,36 @@ pub const Terminal = struct {
     default_state: posix.termios, // Original TTY state
     stdin: std.fs.File, // Holds the TTY handle, which is required by Termios
     stdout: std.fs.File,
-    size: posix.winsize, // The size of the TTY
     cursor: Cursor,
-    raw_mode: bool,
+    screen: Screen,
 
     pub fn init() !Terminal {
         const stdin = std.io.getStdIn();
 
         // Checks if the current handle is a TTY, otherwise it throws an error
         if (posix.isatty(stdin.handle)) {
-            const stdout = std.io.getStdOut();
             const cursor = Cursor.init();
-            const winsize = posix.winsize{ // Creates an empty winsize to be filled later
-                .row = 0,
-                .col = 0,
-                .xpixel = 0,
-                .ypixel = 0,
-            };
-            // Gets the current state of the TTY
-            const default_state = try posix.tcgetattr(stdin.handle);
+            const stdout = std.io.getStdOut();
+            const default_state = try posix.tcgetattr(stdin.handle); // Gets the current state of the TTY
 
-            var term = Terminal{
+            var terminal = Terminal{
                 .default_state = default_state,
                 .stdin = stdin,
                 .stdout = stdout,
-                .size = winsize,
                 .cursor = cursor,
-                .raw_mode = false,
+                .screen = undefined,
             };
 
-            try term.assignSize(); // Fills the winsize field
+            terminal.screen = try Screen.init(&terminal);
 
-            return term;
+            return terminal;
         } else {
             return error.NotATerminal; // If the stdin handle isn't a TTY
         }
     }
 
     pub fn deinit(self: *const Terminal) void {
-        posix.tcsetattr(self.stdin.handle, .NOW, self.default_state) catch {}; // Applies the original state to the TTY
+        posix.tcsetattr(self.stdin.handle, .NOW, self.default_state) catch return; // Applies the original state to the TTY
     }
 
     // Enters Raw mode by disabling ICanon and Echo
@@ -80,25 +74,6 @@ pub const Terminal = struct {
             try posix.tcsetattr(self.stdin.handle, .FLUSH, new_state);
 
             return;
-        }
-
-        return error.NotOnLinux;
-    }
-
-    // Clears the entire screen
-    pub fn clear(self: *const Terminal) !void {
-        try self.stdout.writer().writeAll("\x1b[2J");
-    }
-
-    // Assigns the TTY size to the struct field 'size'
-    pub fn assignSize(self: *Terminal) !void {
-        if (builtin.target.os.tag == .linux) {
-            // Checks the result of 'ioctl' and returns the appropriate value
-            // TODO: Add a proper unexpected return to include the error code
-            switch (linux.ioctl(self.stdin.handle, linux.T.IOCGWINSZ, @intFromPtr(&self.size))) {
-                0 => return,
-                else => return error.UnexpectedError,
-            }
         }
 
         return error.NotOnLinux;

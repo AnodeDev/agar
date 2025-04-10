@@ -1,1 +1,1 @@
-const term = @import("term.zig");
+const terminal = @import("terminal.zig");

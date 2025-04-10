@@ -22,7 +22,7 @@ const Cursor = struct {
 };
 
 // Main struct that holds information about the TTY and its state
-pub const Term = struct {
+pub const Terminal = struct {
     default_state: posix.termios, // Original TTY state
     stdin: std.fs.File, // Holds the TTY handle, which is required by Termios
     stdout: std.fs.File,
@@ -30,7 +30,7 @@ pub const Term = struct {
     cursor: Cursor,
     raw_mode: bool,
 
-    pub fn init() !Term {
+    pub fn init() !Terminal {
         const stdin = std.io.getStdIn();
 
         // Checks if the current handle is a TTY, otherwise it throws an error
@@ -46,7 +46,7 @@ pub const Term = struct {
             // Gets the current state of the TTY
             const default_state = try posix.tcgetattr(stdin.handle);
 
-            var term = Term{
+            var term = Terminal{
                 .default_state = default_state,
                 .stdin = stdin,
                 .stdout = stdout,
@@ -63,12 +63,12 @@ pub const Term = struct {
         }
     }
 
-    pub fn deinit(self: *const Term) void {
+    pub fn deinit(self: *const Terminal) void {
         posix.tcsetattr(self.stdin.handle, .NOW, self.default_state) catch {}; // Applies the original state to the TTY
     }
 
     // Enters Raw mode by disabling ICanon and Echo
-    pub fn enterRawMode(self: *const Term) !void {
+    pub fn enterRawMode(self: *const Terminal) !void {
         if (builtin.target.os.tag == .linux) {
             var new_state = self.default_state;
 
@@ -86,12 +86,12 @@ pub const Term = struct {
     }
 
     // Clears the entire screen
-    pub fn clear(self: *const Term) !void {
+    pub fn clear(self: *const Terminal) !void {
         try self.stdout.writer().writeAll("\x1b[2J");
     }
 
     // Assigns the TTY size to the struct field 'size'
-    pub fn assignSize(self: *Term) !void {
+    pub fn assignSize(self: *Terminal) !void {
         if (builtin.target.os.tag == .linux) {
             // Checks the result of 'ioctl' and returns the appropriate value
             // TODO: Add a proper unexpected return to include the error code
@@ -105,48 +105,48 @@ pub const Term = struct {
     }
 
     // Brings the cursor back to (0, 0)
-    pub fn resetCursor(self: *Term) !void {
+    pub fn resetCursor(self: *Terminal) !void {
         try self.stdout.writer().writeAll("\x1b[H");
         try self.updateCursorPosition();
     }
 
     // TODO: Add boundary checks to make sure the cursor isn't moved out of bounds
-    pub fn moveCursorLeft(self: *Term, distance: usize) !void {
+    pub fn moveCursorLeft(self: *Terminal, distance: usize) !void {
         if (self.cursor.col <= 0) return;
 
         try self.stdout.writer().print("\x1b[{d}D", .{ distance });
         try self.updateCursorPosition();
     }
 
-    pub fn moveCursorDown(self: *Term, distance: usize) !void {
+    pub fn moveCursorDown(self: *Terminal, distance: usize) !void {
         if (self.cursor.row >= self.size.row - 1) return;
 
         try self.stdout.writer().print("\x1b[{d}B", .{ distance });
         try self.updateCursorPosition();
     }
 
-    pub fn moveCursorUp(self: *Term, distance: usize) !void {
+    pub fn moveCursorUp(self: *Terminal, distance: usize) !void {
         if (self.cursor.row <= 0) return;
 
         try self.stdout.writer().print("\x1b[{d}A", .{ distance });
         try self.updateCursorPosition();
     }
 
-    pub fn moveCursorRight(self: *Term, distance: usize) !void {
+    pub fn moveCursorRight(self: *Terminal, distance: usize) !void {
         if (self.cursor.col >= self.size.col - 1) return;
 
         try self.stdout.writer().print("\x1b[{d}C", .{ distance });
         try self.updateCursorPosition();
     }
 
-    pub fn moveCursorToCoords(self: *Term, x: usize, y: usize) !void {
+    pub fn moveCursorToCoords(self: *Terminal, x: usize, y: usize) !void {
         if (x > self.size.col or y > self.size.row) return error.OutOfRange;
 
         try self.stdout.writer().print("\x1b[{d};{d}H", .{ x, y });
         try self.updateCursorPosition();
     }
 
-    pub fn updateCursorPosition(self: *Term) !void {
+    pub fn updateCursorPosition(self: *Terminal) !void {
         const stdout = self.stdout.writer();
         const stdin = self.stdin.reader();
 
@@ -175,11 +175,11 @@ pub const Term = struct {
         self.cursor.col = col;
     }
 
-    pub fn showCursor(self: *const Term) !void {
+    pub fn showCursor(self: *const Terminal) !void {
         try self.stdout.writer().writeAll("\x1b[?25h");
     }
 
-    pub fn hideCursor(self: *const Term) !void {
+    pub fn hideCursor(self: *const Terminal) !void {
         try self.stdout.writer().writeAll("\x1b[?25l");
     }
 };

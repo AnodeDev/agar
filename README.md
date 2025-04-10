@@ -1,5 +1,8 @@
 # AGAR
 
+> [!WARNING]
+> THIS LIBRARY IS VERY EARLY IN DEVELOPMENT AND IS CURRENTLY UNUSABLE!
+
 > Agar uses Zig version 0.15.0 (development branch)
 
 # About

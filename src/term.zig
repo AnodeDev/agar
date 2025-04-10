@@ -1,3 +1,8 @@
+// Holds all the terminal-related code
+// It handles:
+//  - Raw mode
+//  - Cursor manipulation
+
 const std = @import("std");
 const builtin = @import("builtin");
 
@@ -23,6 +28,7 @@ pub const Term = struct {
     stdout: std.fs.File,
     size: posix.winsize, // The size of the TTY
     cursor: Cursor,
+    raw_mode: bool,
 
     pub fn init() !Term {
         const stdin = std.io.getStdIn();
@@ -37,29 +43,19 @@ pub const Term = struct {
                 .xpixel = 0,
                 .ypixel = 0,
             };
-            // Gets the current state of the TTY and copies it into a new variable
+            // Gets the current state of the TTY
             const default_state = try posix.tcgetattr(stdin.handle);
-            var new_state = default_state;
 
-            // Disables ICanon and Echo
-            new_state.lflag = linux.tc_lflag_t{
-                .ICANON = false,
-                .ECHO = false,
-            };
-
-            // Applies the new state to the TTY
-            try posix.tcsetattr(stdin.handle, .FLUSH, new_state);
-            
             var term = Term{
                 .default_state = default_state,
                 .stdin = stdin,
                 .stdout = stdout,
                 .size = winsize,
                 .cursor = cursor,
+                .raw_mode = false,
             };
 
-            try term.assignSize(); // Fills the winsize
-            try term.resetCursor(); // Makes sure it always start at (0, 0)
+            try term.assignSize(); // Fills the winsize field
 
             return term;
         } else {
@@ -69,6 +65,24 @@ pub const Term = struct {
 
     pub fn deinit(self: *const Term) void {
         posix.tcsetattr(self.stdin.handle, .NOW, self.default_state) catch {}; // Applies the original state to the TTY
+    }
+
+    // Enters Raw mode by disabling ICanon and Echo
+    pub fn enterRawMode(self: *const Term) !void {
+        if (builtin.target.os.tag == .linux) {
+            var new_state = self.default_state;
+
+            new_state.lflag = linux.tc_lflag_t{
+                .ICANON = false,
+                .ECHO = false,
+            };
+
+            try posix.tcsetattr(self.stdin.handle, .FLUSH, new_state);
+
+            return;
+        }
+
+        return error.NotOnLinux;
     }
 
     // Clears the entire screen
@@ -98,21 +112,29 @@ pub const Term = struct {
 
     // TODO: Add boundary checks to make sure the cursor isn't moved out of bounds
     pub fn moveCursorLeft(self: *Term, distance: usize) !void {
+        if (self.cursor.col <= 0) return;
+
         try self.stdout.writer().print("\x1b[{d}D", .{ distance });
         try self.updateCursorPosition();
     }
 
     pub fn moveCursorDown(self: *Term, distance: usize) !void {
+        if (self.cursor.row >= self.size.row - 1) return;
+
         try self.stdout.writer().print("\x1b[{d}B", .{ distance });
         try self.updateCursorPosition();
     }
 
     pub fn moveCursorUp(self: *Term, distance: usize) !void {
+        if (self.cursor.row <= 0) return;
+
         try self.stdout.writer().print("\x1b[{d}A", .{ distance });
         try self.updateCursorPosition();
     }
 
     pub fn moveCursorRight(self: *Term, distance: usize) !void {
+        if (self.cursor.col >= self.size.col - 1) return;
+
         try self.stdout.writer().print("\x1b[{d}C", .{ distance });
         try self.updateCursorPosition();
     }
@@ -152,7 +174,12 @@ pub const Term = struct {
         self.cursor.row = row;
         self.cursor.col = col;
     }
-};
 
-// TODO:
-//  - Add getCursorPosition function
+    pub fn showCursor(self: *const Term) !void {
+        try self.stdout.writer().writeAll("\x1b[?25h");
+    }
+
+    pub fn hideCursor(self: *const Term) !void {
+        try self.stdout.writer().writeAll("\x1b[?25l");
+    }
+};

@@ -6,50 +6,40 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const screen_mod = @import("screen.zig");
+const cursor_mod = @import("cursor.zig");
 
 const Stdout = std.io.stdout;
 const posix = std.posix;
 const linux = std.os.linux;
 const Screen = screen_mod.Screen;
-
-const Cursor = struct {
-    row: usize,
-    col: usize,
-
-    fn init() Cursor {
-        return Cursor{
-            .row = 0,
-            .col = 0,
-        };
-    }
-};
+const Cursor = cursor_mod.Cursor;
 
 // Main struct that holds information about the TTY and its state
 pub const Terminal = struct {
+    allocator: std.mem.Allocator,
     default_state: posix.termios, // Original TTY state
     stdin: std.fs.File, // Holds the TTY handle, which is required by Termios
-    stdout: std.fs.File,
     cursor: Cursor,
     screen: Screen,
 
-    pub fn init() !Terminal {
+    pub fn init(allocator: std.mem.Allocator) !*Terminal {
         const stdin = std.io.getStdIn();
 
         // Checks if the current handle is a TTY, otherwise it throws an error
         if (posix.isatty(stdin.handle)) {
-            const cursor = Cursor.init();
-            const stdout = std.io.getStdOut();
             const default_state = try posix.tcgetattr(stdin.handle); // Gets the current state of the TTY
+            var terminal = try allocator.create(Terminal);
 
-            var terminal = Terminal{
+            terminal.* = Terminal{
+                .allocator = allocator,
                 .default_state = default_state,
                 .stdin = stdin,
-                .stdout = stdout,
-                .cursor = cursor,
+                .cursor = undefined,
                 .screen = undefined,
             };
 
-            terminal.screen = try Screen.init(&terminal);
+            terminal.screen = try Screen.init(terminal);
+            terminal.cursor = Cursor.init(terminal);
 
             return terminal;
         } else {
@@ -58,7 +48,8 @@ pub const Terminal = struct {
     }
 
     pub fn deinit(self: *const Terminal) void {
-        posix.tcsetattr(self.stdin.handle, .NOW, self.default_state) catch return; // Applies the original state to the TTY
+        self.exitRawMode() catch return;
+        self.allocator.destroy(self);
     }
 
     // Enters Raw mode by disabling ICanon and Echo
@@ -79,82 +70,7 @@ pub const Terminal = struct {
         return error.NotOnLinux;
     }
 
-    // Brings the cursor back to (0, 0)
-    pub fn resetCursor(self: *Terminal) !void {
-        try self.stdout.writer().writeAll("\x1b[H");
-        try self.updateCursorPosition();
-    }
-
-    // TODO: Add boundary checks to make sure the cursor isn't moved out of bounds
-    pub fn moveCursorLeft(self: *Terminal, distance: usize) !void {
-        if (self.cursor.col <= 0) return;
-
-        try self.stdout.writer().print("\x1b[{d}D", .{ distance });
-        try self.updateCursorPosition();
-    }
-
-    pub fn moveCursorDown(self: *Terminal, distance: usize) !void {
-        if (self.cursor.row >= self.size.row - 1) return;
-
-        try self.stdout.writer().print("\x1b[{d}B", .{ distance });
-        try self.updateCursorPosition();
-    }
-
-    pub fn moveCursorUp(self: *Terminal, distance: usize) !void {
-        if (self.cursor.row <= 0) return;
-
-        try self.stdout.writer().print("\x1b[{d}A", .{ distance });
-        try self.updateCursorPosition();
-    }
-
-    pub fn moveCursorRight(self: *Terminal, distance: usize) !void {
-        if (self.cursor.col >= self.size.col - 1) return;
-
-        try self.stdout.writer().print("\x1b[{d}C", .{ distance });
-        try self.updateCursorPosition();
-    }
-
-    pub fn moveCursorToCoords(self: *Terminal, x: usize, y: usize) !void {
-        if (x > self.size.col or y > self.size.row) return error.OutOfRange;
-
-        try self.stdout.writer().print("\x1b[{d};{d}H", .{ x, y });
-        try self.updateCursorPosition();
-    }
-
-    pub fn updateCursorPosition(self: *Terminal) !void {
-        const stdout = self.stdout.writer();
-        const stdin = self.stdin.reader();
-
-        try stdout.writeAll("\x1b[6n");
-        var buf: [32]u8 = undefined;
-        const bytes_read = try stdin.read(&buf);
-
-        const response = buf[0..bytes_read];
-
-        if (response.len < 5) return error.InvalidResponse;
-
-        if (response[0] != 0x1b or response[1] != '[' or response[bytes_read-1] != 'R') {
-            return error.InvalidResponse;
-        }
-
-        const data = response[2..bytes_read-1];
-        const semicolon = std.mem.indexOfScalar(u8, data, ';') orelse return error.InvalidResponse;
-
-        const row_str = data[0..semicolon];
-        const col_str = data[semicolon+1..];
-
-        const row = try std.fmt.parseInt(usize, row_str, 10);
-        const col = try std.fmt.parseInt(usize, col_str, 10);
-
-        self.cursor.row = row;
-        self.cursor.col = col;
-    }
-
-    pub fn showCursor(self: *const Terminal) !void {
-        try self.stdout.writer().writeAll("\x1b[?25h");
-    }
-
-    pub fn hideCursor(self: *const Terminal) !void {
-        try self.stdout.writer().writeAll("\x1b[?25l");
+    pub fn exitRawMode(self: *const Terminal) !void {
+        posix.tcsetattr(self.stdin.handle, .NOW, self.default_state) catch return; // Applies the original state to the TTY
     }
 };

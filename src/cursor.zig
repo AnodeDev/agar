@@ -55,7 +55,7 @@ pub const Cursor = struct {
         try self.updatePosition();
     }
 
-    pub fn moveToCoords(self: *Cursor, x: usize, y: usize) !void {
+    pub fn moveTo(self: *Cursor, x: usize, y: usize) !void {
         if (x > self.terminal.screen.size.col or y > self.terminal.screen.size.row) return error.OutOfRange;
 
         try self.stdout.writer().print("\x1b[{d};{d}H", .{ x, y });

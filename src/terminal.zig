@@ -40,6 +40,7 @@ pub const Terminal = struct {
 
             terminal.screen = try Screen.init(terminal);
             terminal.cursor = Cursor.init(terminal);
+            try terminal.cursor.reset();
 
             return terminal;
         } else {

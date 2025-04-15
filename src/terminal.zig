@@ -1,18 +1,17 @@
 // Holds all the terminal-related code
-// It handles:
-//  - Raw mode
-//  - Cursor manipulation
 
 const std = @import("std");
 const builtin = @import("builtin");
 const screen_mod = @import("screen.zig");
 const cursor_mod = @import("cursor.zig");
+const widgets_mod = @import("widgets.zig");
 
 const Stdout = std.io.stdout;
 const posix = std.posix;
 const linux = std.os.linux;
 const Screen = screen_mod.Screen;
 const Cursor = cursor_mod.Cursor;
+const Widget = widgets_mod.Widget;
 
 // Main struct that holds information about the TTY and its state
 pub const Terminal = struct {
@@ -21,6 +20,7 @@ pub const Terminal = struct {
     stdin: std.fs.File, // Holds the TTY handle, which is required by Termios
     cursor: Cursor,
     screen: Screen,
+    widgets: std.ArrayList(Widget),
 
     pub fn init(allocator: std.mem.Allocator) !*Terminal {
         const stdin = std.io.getStdIn();
@@ -29,6 +29,7 @@ pub const Terminal = struct {
         if (posix.isatty(stdin.handle)) {
             const default_state = try posix.tcgetattr(stdin.handle); // Gets the current state of the TTY
             var terminal = try allocator.create(Terminal);
+            const widgets = std.ArrayList(Widget).init(allocator);
 
             terminal.* = Terminal{
                 .allocator = allocator,
@@ -36,11 +37,11 @@ pub const Terminal = struct {
                 .stdin = stdin,
                 .cursor = undefined,
                 .screen = undefined,
+                .widgets = widgets,
             };
 
             terminal.screen = try Screen.init(terminal);
             terminal.cursor = Cursor.init(terminal);
-            try terminal.cursor.reset();
 
             return terminal;
         } else {
@@ -50,6 +51,10 @@ pub const Terminal = struct {
 
     pub fn deinit(self: *const Terminal) void {
         self.exitRawMode() catch return;
+        for (self.widgets.items) |widget| {
+            widget.deinit();
+        }
+        self.widgets.deinit();
         self.allocator.destroy(self);
     }
 
@@ -73,5 +78,9 @@ pub const Terminal = struct {
 
     pub fn exitRawMode(self: *const Terminal) !void {
         posix.tcsetattr(self.stdin.handle, .NOW, self.default_state) catch return; // Applies the original state to the TTY
+    }
+
+    pub fn addWidget(self: *Terminal, widget: Widget) !void {
+        try self.widgets.append(widget);
     }
 };

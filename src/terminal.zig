@@ -22,7 +22,7 @@ pub const Terminal = struct {
             const default_state = try posix.tcgetattr(stdin.handle);
 
             terminal.* = .{
-                .backend = Backend.init(),
+                .backend = try Backend.init(allocator),
                 .default_state = default_state,
             };
 
@@ -33,7 +33,12 @@ pub const Terminal = struct {
     }
 
     pub fn deinit(self: *const Terminal, allocator: std.mem.Allocator) void {
+        // Resets terminal state
+        self.disableAlternativeBuffer() catch return;
         self.exitRawMode() catch return;
+
+        // Frees memory
+        self.backend.deinit(allocator);
         allocator.destroy(self);
     }
 
@@ -59,5 +64,13 @@ pub const Terminal = struct {
 
     pub fn exitRawMode(self: *const Terminal) !void {
         posix.tcsetattr(self.backend.stdin.handle, .NOW, self.default_state) catch return; // Applies the original state to the TTY
+    }
+
+    pub fn enableAlternativeBuffer(self: *const Terminal) !void {
+        try self.backend.write("\x1b[?1049h");
+    }
+
+    pub fn disableAlternativeBuffer(self: *const Terminal) !void {
+        try self.backend.write("\x1b[?1049l");
     }
 };

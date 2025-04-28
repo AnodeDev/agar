@@ -14,7 +14,11 @@ pub fn main() !void {
     defer tty.deinit(allocator);
 
     try tty.enterRawMode();
+    try tty.enableAlternativeBuffer();
 
-    try tty.backend.clear();
     try tty.backend.write("Hello, World!");
+    try tty.backend.hideCursor();
+
+    std.Thread.sleep(5000000000);
+    try tty.backend.showCursor();
 }

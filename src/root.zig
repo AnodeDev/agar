@@ -19,6 +19,10 @@ pub fn main() !void {
     try tty.backend.write("Hello, World!");
     try tty.backend.hideCursor();
 
-    std.Thread.sleep(5000000000);
+    std.Thread.sleep(1000000000);
+    try tty.backend.clear();
+    try tty.backend.resetCursor();
+    try tty.backend.write("Goodbye, world!");
+    std.Thread.sleep(2000000000);
     try tty.backend.showCursor();
 }

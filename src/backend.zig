@@ -1,19 +1,16 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const widget_mod = @import("widget.zig");
 
-// Fields
-//  - row: u16
-//  - col: u16
-//  - xpixel: u16,
-//  - ypixel: u16,
 const Linux = std.os.linux;
 const Posix = std.posix;
 const Winsize = Posix.winsize;
 const Termios = Posix.termios;
+const Rect = widget_mod.Rect;
 
 pub const Cursor = struct {
-    x: usize,
-    y: usize,
+    x: u16,
+    y: u16,
 
     pub fn init() Cursor {
         return Cursor {
@@ -56,9 +53,6 @@ pub const Backend = struct {
         try self.stdout.writer().writeAll("\x1b[2J");
     }
 
-//   pub fn flush() !void {
-//   }
-// 
     pub fn getSize(self: *const Backend, allocator: std.mem.Allocator) !*Winsize {
         if (builtin.target.os.tag == .linux) {
             const size = try allocator.create(Winsize);
@@ -80,7 +74,7 @@ pub const Backend = struct {
         try self.stdout.writer().writeAll("\x1b[?25l");
     }
 
-    pub fn moveCursor(self: *Backend, x: usize, y: usize) !void {
+    pub fn moveCursor(self: *Backend, x: u16, y: u16) !void {
         if (x >= self.screen_size.col or y >= self.screen_size.row or x < 0 or y < 0) {
             return error.OutOfBoundsCoordinate;
         }
@@ -89,5 +83,15 @@ pub const Backend = struct {
 
         self.cursor.x = x;
         self.cursor.y = y;
+    }
+
+    // Wrapper function for resetting cursor to 0, 0
+    pub fn resetCursor(self: *Backend) !void {
+        try self.moveCursor(0, 0);
+    }
+
+    // Wrapper function to get a Rect for the entire screen
+    pub fn area(self: *const Backend, allocator: std.mem.Allocator) *Rect {
+        return Rect.init(allocator, self.screen_size.col, self.screen_size.row);
     }
 };

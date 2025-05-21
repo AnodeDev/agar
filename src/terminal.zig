@@ -3,11 +3,13 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const backend_mod = @import("backend.zig");
+const frame_mod = @import("frame.zig");
 
 const posix = std.posix;
 const linux = std.os.linux;
 const Termios = posix.termios;
 const Backend = backend_mod.Backend;
+const Frame = frame_mod.Frame;
 
 // Main struct that holds information about the TTY and its state
 pub const Terminal = struct {
@@ -72,5 +74,9 @@ pub const Terminal = struct {
 
     pub fn disableAlternativeBuffer(self: *const Terminal) !void {
         try self.backend.write("\x1b[?1049l");
+    }
+
+    pub fn getFrame(self: *Terminal) Frame {
+        return Frame{ .ptr = self };
     }
 };

@@ -9,8 +9,8 @@ const Termios = Posix.termios;
 const Rect = widget_mod.Rect;
 
 pub const Cursor = struct {
-    x: u16,
-    y: u16,
+    x: usize,
+    y: usize,
 
     pub fn init() Cursor {
         return Cursor {
@@ -74,8 +74,8 @@ pub const Backend = struct {
         try self.stdout.writer().writeAll("\x1b[?25l");
     }
 
-    pub fn moveCursor(self: *Backend, x: u16, y: u16) !void {
-        if (x >= self.screen_size.col or y >= self.screen_size.row or x < 0 or y < 0) {
+    pub fn moveCursor(self: *Backend, x: usize, y: usize) !void {
+        if (x > self.screen_size.col or y > self.screen_size.row or x < 0 or y < 0) {
             return error.OutOfBoundsCoordinate;
         }
 

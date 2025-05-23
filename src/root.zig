@@ -1,7 +1,10 @@
 const std = @import("std");
 const terminal_mod = @import("terminal.zig");
+const widget_mod = @import("widget.zig");
 
 const Terminal = terminal_mod.Terminal;
+const Widget = widget_mod.Widget;
+const Constraint = widget_mod.Constraint;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -15,14 +18,25 @@ pub fn main() !void {
 
     try tty.enterRawMode();
     try tty.enableAlternativeBuffer();
-
-    try tty.backend.write("Hello, World!");
     try tty.backend.hideCursor();
 
-    std.Thread.sleep(1000000000);
-    try tty.backend.clear();
-    try tty.backend.resetCursor();
-    try tty.backend.write("Goodbye, world!");
-    std.Thread.sleep(2000000000);
+    const frame = tty.getFrame();
+    const paragraph = Widget.paragraph(allocator, "Hello everybody!");
+    defer allocator.destroy(paragraph);
+    const area = frame.area();
+    const constraints = [_]Constraint{
+        Constraint{ .Length = 10 },
+        Constraint{ .Length = 10 },
+        Constraint{ .Length = 10 },
+    };
+
+    const smol_widgets = try widget_mod.vertical(allocator, constraints[0..], area);
+    defer allocator.free(smol_widgets);
+
+    try frame.renderWidget(allocator, paragraph, smol_widgets[0]);
+    try frame.renderWidget(allocator, paragraph, smol_widgets[1]);
+    try frame.renderWidget(allocator, paragraph, smol_widgets[2]);
+
+    std.Thread.sleep(10000000000);
     try tty.backend.showCursor();
 }

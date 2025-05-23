@@ -51,40 +51,39 @@ pub const Frame = struct {
                         var width_offset: u16 = 0;
 
                         for (0..rect.width - 2) |_| {
-
                             @memcpy(horizontal[width_offset..hor_len + width_offset], hor_line[0..hor_len]);
 
                             width_offset += hor_len;
                         }
 
                         // Top
-                        try self.ptr.backend.moveCursor(rect.x + 2, rect.y);
+                        try self.ptr.backend.moveCursor(rect.x + 1, rect.y);
                         try self.ptr.backend.stdout.writer().print("{s}", .{ horizontal[0..width_offset] });
 
                         // Bottom
-                        try self.ptr.backend.moveCursor(rect.x + 2, rect.y + rect.height);
+                        try self.ptr.backend.moveCursor(rect.x + 1, rect.y + rect.height - 1);
                         try self.ptr.backend.stdout.writer().print("{s}", .{ horizontal[0..width_offset] });
 
                         // Vertical
-                        for (2..rect.height) |i| {
+                        for (1..rect.height - 1) |i| {
                             try self.ptr.backend.moveCursor(rect.x, rect.y + i);
                             try self.ptr.backend.stdout.writer().print("{s}", .{ vert_line[0..vert_len] });
 
-                            try self.ptr.backend.moveCursor(rect.x + rect.width, rect.y + i);
+                            try self.ptr.backend.moveCursor(rect.x + rect.width - 1, rect.y + i);
                             try self.ptr.backend.stdout.writer().print("{s}", .{ vert_line[0..vert_len] });
                         }
 
                         try self.ptr.backend.moveCursor(rect.x, rect.y);
                         try self.ptr.backend.write(top_left_line[0..top_left_len]);
-                        try self.ptr.backend.moveCursor(rect.x + rect.width, rect.y);
+                        try self.ptr.backend.moveCursor(rect.x + rect.width - 1, rect.y);
                         try self.ptr.backend.write(top_right_line[0..top_right_len]);
-                        try self.ptr.backend.moveCursor(rect.x, rect.y + rect.height);
+                        try self.ptr.backend.moveCursor(rect.x, rect.y + rect.height - 1);
                         try self.ptr.backend.write(bottom_left_line[0..bottom_left_len]);
-                        try self.ptr.backend.moveCursor(rect.x + rect.width, rect.y + rect.height);
+                        try self.ptr.backend.moveCursor(rect.x + rect.width - 1, rect.y + rect.height - 1);
                         try self.ptr.backend.write(bottom_right_line[0..bottom_right_len]);
 
                         x_offset += 2;
-                        y_offset += 2;
+                        y_offset += 1;
                     },
                     .Left => undefined,
                     .Right => undefined,
@@ -93,9 +92,8 @@ pub const Frame = struct {
                 }
 
                 try self.ptr.backend.moveCursor(rect.x + x_offset, rect.y + y_offset);
-        
 
-                try self.ptr.backend.write(paragraph.text[0..paragraph.text.len]);
+                try self.ptr.backend.write(paragraph.text);
             },
             .block => {},
         }

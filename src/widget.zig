@@ -113,7 +113,6 @@ pub fn horizontal(allocator: std.mem.Allocator, constraints: []const Constraint,
 
 pub fn vertical(allocator: std.mem.Allocator, constraints: []const Constraint, area: Rect) ![]Rect {
     var new_areas = try allocator.alloc(Rect, constraints.len);
-    defer allocator.free(new_areas);
     const len = constraints.len;
     var offset: u16 = 0;
 

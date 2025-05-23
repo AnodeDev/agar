@@ -75,11 +75,14 @@ pub const Backend = struct {
     }
 
     pub fn moveCursor(self: *Backend, x: usize, y: usize) !void {
-        if (x > self.screen_size.col or y > self.screen_size.row or x < 0 or y < 0) {
+        const new_x = x + 1;
+        const new_y = y + 1;
+
+        if (new_x > self.screen_size.col or new_y > self.screen_size.row or new_x < 0 or new_y < 0) {
             return error.OutOfBoundsCoordinate;
         }
 
-        try self.stdout.writer().print("\x1b[{d};{d}H", .{ y, x });
+        try self.stdout.writer().print("\x1b[{d};{d}H", .{ new_y, new_x });
 
         self.cursor.x = x;
         self.cursor.y = y;

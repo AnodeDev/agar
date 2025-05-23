@@ -13,7 +13,7 @@ pub const Cursor = struct {
     y: usize,
 
     pub fn init() Cursor {
-        return Cursor {
+        return Cursor{
             .x = 0,
             .y = 0,
         };
@@ -46,7 +46,7 @@ pub const Backend = struct {
     }
 
     pub fn write(self: *const Backend, buf: []const u8) !void {
-        try self.stdout.writer().print("{s}", .{ buf });
+        try self.stdout.writer().print("{s}", .{buf});
     }
 
     pub fn clear(self: *const Backend) !void {
@@ -69,7 +69,7 @@ pub const Backend = struct {
     pub fn showCursor(self: *const Backend) !void {
         try self.stdout.writer().writeAll("\x1b[?25h");
     }
-  
+
     pub fn hideCursor(self: *const Backend) !void {
         try self.stdout.writer().writeAll("\x1b[?25l");
     }

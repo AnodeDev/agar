@@ -57,7 +57,6 @@ pub const Terminal = struct {
 
             try posix.tcsetattr(self.backend.stdin.handle, .FLUSH, new_state);
 
-
             return;
         } else {
             return error.NotOnLinux;

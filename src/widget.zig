@@ -123,7 +123,7 @@ pub fn horizontal(allocator: std.mem.Allocator, constraints: []const Constraint,
             .Fill => |weight| {
                 const fill_weight: u16 = @intFromFloat(@as(f32, @floatFromInt(remaining_width * weight)) / @as(f32, @floatFromInt(total_fill_weight)));
 
-                const rect = Rect {
+                const rect = Rect{
                     .x = area.x + offset,
                     .y = area.y,
                     .width = fill_weight,
@@ -175,7 +175,7 @@ pub fn vertical(allocator: std.mem.Allocator, constraints: []const Constraint, a
             .Fill => |weight| {
                 const fill_weight: u16 = @intFromFloat(@as(f32, @floatFromInt(remaining_height * weight)) / @as(f32, @floatFromInt(total_fill_weight)));
 
-                const rect = Rect {
+                const rect = Rect{
                     .x = area.x,
                     .y = area.y + offset,
                     .width = area.width,

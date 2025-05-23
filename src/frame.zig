@@ -51,26 +51,26 @@ pub const Frame = struct {
                         var width_offset: u16 = 0;
 
                         for (0..rect.width - 2) |_| {
-                            @memcpy(horizontal[width_offset..hor_len + width_offset], hor_line[0..hor_len]);
+                            @memcpy(horizontal[width_offset .. hor_len + width_offset], hor_line[0..hor_len]);
 
                             width_offset += hor_len;
                         }
 
                         // Top
                         try self.ptr.backend.moveCursor(rect.x + 1, rect.y);
-                        try self.ptr.backend.stdout.writer().print("{s}", .{ horizontal[0..width_offset] });
+                        try self.ptr.backend.stdout.writer().print("{s}", .{horizontal[0..width_offset]});
 
                         // Bottom
                         try self.ptr.backend.moveCursor(rect.x + 1, rect.y + rect.height - 1);
-                        try self.ptr.backend.stdout.writer().print("{s}", .{ horizontal[0..width_offset] });
+                        try self.ptr.backend.stdout.writer().print("{s}", .{horizontal[0..width_offset]});
 
                         // Vertical
                         for (1..rect.height - 1) |i| {
                             try self.ptr.backend.moveCursor(rect.x, rect.y + i);
-                            try self.ptr.backend.stdout.writer().print("{s}", .{ vert_line[0..vert_len] });
+                            try self.ptr.backend.stdout.writer().print("{s}", .{vert_line[0..vert_len]});
 
                             try self.ptr.backend.moveCursor(rect.x + rect.width - 1, rect.y + i);
-                            try self.ptr.backend.stdout.writer().print("{s}", .{ vert_line[0..vert_len] });
+                            try self.ptr.backend.stdout.writer().print("{s}", .{vert_line[0..vert_len]});
                         }
 
                         try self.ptr.backend.moveCursor(rect.x, rect.y);

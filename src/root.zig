@@ -24,18 +24,25 @@ pub fn main() !void {
     const paragraph = Widget.paragraph(allocator, "Hello everybody!");
     defer allocator.destroy(paragraph);
     const area = frame.area();
-    const constraints = [_]Constraint{
-        Constraint{ .Length = 10 },
-        Constraint{ .Length = 10 },
-        Constraint{ .Length = 10 },
+    const constraints_vertical = [_]Constraint{
+        Constraint{ .Fill = 1 },
+        Constraint{ .Fill = 2 },
     };
 
-    const smol_widgets = try widget_mod.vertical(allocator, constraints[0..], area);
+    const smol_widgets = try widget_mod.vertical(allocator, constraints_vertical[0..], area);
     defer allocator.free(smol_widgets);
 
+    const constraints_horizontal = [_]Constraint{
+        Constraint{ .Length = 40 },
+        Constraint{ .Fill = 1 },
+    };
+
+    const smoller_widgets = try widget_mod.horizontal(allocator, constraints_horizontal[0..], smol_widgets[1]);
+    defer allocator.free(smoller_widgets);
+
     try frame.renderWidget(allocator, paragraph, smol_widgets[0]);
-    try frame.renderWidget(allocator, paragraph, smol_widgets[1]);
-    try frame.renderWidget(allocator, paragraph, smol_widgets[2]);
+    try frame.renderWidget(allocator, paragraph, smoller_widgets[0]);
+    try frame.renderWidget(allocator, paragraph, smoller_widgets[1]);
 
     std.Thread.sleep(10000000000);
     try tty.backend.showCursor();

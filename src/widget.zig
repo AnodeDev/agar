@@ -84,26 +84,54 @@ pub const Widget = struct {
 
 pub const Constraint = union(enum) {
     Length: u16,
+    Fill: u16,
 };
 
 pub fn horizontal(allocator: std.mem.Allocator, constraints: []const Constraint, area: Rect) ![]Rect {
     var new_areas = try allocator.alloc(Rect, constraints.len);
-    defer allocator.free(new_areas);
-    const len = constraints.len;
+
+    var total_fixed_width: u16 = 0;
+    var total_fill_weight: usize = 0;
+
+    for (constraints) |constraint| {
+        switch (constraint) {
+            .Length => |width| {
+                total_fixed_width += width;
+            },
+            .Fill => |weight| {
+                total_fill_weight += weight;
+            },
+        }
+    }
+
+    const remaining_width = area.width - total_fixed_width;
     var offset: u16 = 0;
 
-    for (0..len) |i| {
-        switch (constraints[i]) {
+    for (constraints, 0..) |constraint, i| {
+        switch (constraint) {
             .Length => |width| {
-                const new_rect = Rect{
+                const rect = Rect{
                     .x = area.x + offset,
                     .y = area.y,
                     .width = width,
                     .height = area.height,
                 };
 
-                new_areas[i] = new_rect;
-                offset += width;
+                new_areas[i] = rect;
+                offset += rect.width;
+            },
+            .Fill => |weight| {
+                const fill_weight: u16 = @intFromFloat(@as(f32, @floatFromInt(remaining_width * weight)) / @as(f32, @floatFromInt(total_fill_weight)));
+
+                const rect = Rect {
+                    .x = area.x + offset,
+                    .y = area.y,
+                    .width = fill_weight,
+                    .height = area.height,
+                };
+
+                new_areas[i] = rect;
+                offset += rect.width;
             },
         }
     }
@@ -113,21 +141,49 @@ pub fn horizontal(allocator: std.mem.Allocator, constraints: []const Constraint,
 
 pub fn vertical(allocator: std.mem.Allocator, constraints: []const Constraint, area: Rect) ![]Rect {
     var new_areas = try allocator.alloc(Rect, constraints.len);
-    const len = constraints.len;
+
+    var total_fixed_height: u16 = 0;
+    var total_fill_weight: usize = 0;
+
+    for (constraints) |constraint| {
+        switch (constraint) {
+            .Length => |height| {
+                total_fixed_height += height;
+            },
+            .Fill => |weight| {
+                total_fill_weight += weight;
+            },
+        }
+    }
+
+    const remaining_height = area.height - total_fixed_height;
     var offset: u16 = 0;
 
-    for (0..len) |i| {
-        switch (constraints[i]) {
+    for (constraints, 0..) |constraint, i| {
+        switch (constraint) {
             .Length => |height| {
-                const new_rect = Rect{
+                const rect = Rect{
                     .x = area.x,
                     .y = area.y + offset,
                     .width = area.width,
                     .height = height,
                 };
 
-                new_areas[i] = new_rect;
-                offset += height;
+                new_areas[i] = rect;
+                offset += rect.height;
+            },
+            .Fill => |weight| {
+                const fill_weight: u16 = @intFromFloat(@as(f32, @floatFromInt(remaining_height * weight)) / @as(f32, @floatFromInt(total_fill_weight)));
+
+                const rect = Rect {
+                    .x = area.x,
+                    .y = area.y + offset,
+                    .width = area.width,
+                    .height = fill_weight,
+                };
+
+                new_areas[i] = rect;
+                offset += rect.height;
             },
         }
     }

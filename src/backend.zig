@@ -1,12 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const widget_mod = @import("widget.zig");
+const widget = @import("widgets/widget.zig");
 
 const Linux = std.os.linux;
 const Posix = std.posix;
 const Winsize = Posix.winsize;
 const Termios = Posix.termios;
-const Rect = widget_mod.Rect;
+const Rect = widget.Rect;
 
 pub const Cursor = struct {
     x: usize,

@@ -1,13 +1,6 @@
 const std = @import("std");
-
-const Borders = enum {
-    None,
-    All,
-    Left,
-    Right,
-    Top,
-    Bottom,
-};
+pub const Block = @import("block.zig").Block;
+pub const Paragraph = @import("paragraph.zig").Paragraph;
 
 pub const Rect = packed struct {
     x: u16,
@@ -29,62 +22,23 @@ pub const Rect = packed struct {
     }
 };
 
-pub const Widget = struct {
-    const Kind = union(enum) {
-        paragraph: Paragraph,
-        block: Block,
-    };
-
-    const Paragraph = struct {
-        block: Block,
-        text: []const u8,
-    };
-
-    const Block = struct {
-        borders: Borders,
-    };
-
-    kind: Kind,
-    width: u16,
-    height: u16,
-
-    pub fn paragraph(allocator: std.mem.Allocator, text: []const u8) *Widget {
-        const widget = allocator.create(Widget) catch unreachable;
-
-        widget.* = .{
-            .kind = .{
-                .paragraph = .{
-                    .block = .{
-                        .borders = Borders.All,
-                    },
-                    .text = text,
-                },
-            },
-            .width = 0,
-            .height = 0,
-        };
-
-        return widget;
-    }
-
-    pub fn block(allocator: std.mem.Allocator) *Widget {
-        const widget = allocator.create(Widget) catch unreachable;
-
-        widget.* = .{
-            .kind = .{
-                .block = .{
-                    .borders = Borders.All,
-                },
-            },
-        };
-
-        return widget;
-    }
-};
-
 pub const Constraint = union(enum) {
     Length: u16,
     Fill: u16,
+};
+
+pub const Widget = struct {
+    pub const Kind = union(enum) {
+        Block: *Block,
+        Paragraph: *Paragraph,
+    };
+
+    ptr: *anyopaque,
+    getKindFn: *const fn (ptr: *anyopaque) Kind,
+
+    pub fn getKind(self: *const Widget) Kind {
+        return self.getKindFn(self.ptr);
+    }
 };
 
 pub fn horizontal(allocator: std.mem.Allocator, constraints: []const Constraint, area: Rect) ![]Rect {

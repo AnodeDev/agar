@@ -3,6 +3,8 @@ const agar = @import("agar");
 
 const Terminal = agar.terminal.Terminal;
 const Constraint = agar.widget.Constraint;
+const Block = agar.widget.Block;
+const Paragraph = agar.widget.Paragraph;
 const Widget = agar.widget.Widget;
 
 pub fn main() !void {
@@ -20,8 +22,7 @@ pub fn main() !void {
     try tty.backend.hideCursor();
 
     const frame = tty.getFrame();
-    const paragraph = Widget.paragraph(allocator, "Hello everybody!");
-    defer allocator.destroy(paragraph);
+    const paragraph = Paragraph.init(allocator, "Hello everybody!");
     const area = frame.area();
     const constraints_vertical = [_]Constraint{
         Constraint{ .Fill = 1 },
@@ -39,10 +40,13 @@ pub fn main() !void {
     const smoller_widgets = try agar.widget.horizontal(allocator, constraints_horizontal[0..], smol_widgets[1]);
     defer allocator.free(smoller_widgets);
 
-    try frame.renderWidget(allocator, paragraph, smol_widgets[0]);
-    try frame.renderWidget(allocator, paragraph, smoller_widgets[0]);
-    try frame.renderWidget(allocator, paragraph, smoller_widgets[1]);
+    const bordered = paragraph.assignBlock(Block.bordered(allocator, .All));
+    defer bordered.deinit(allocator);
 
-    std.Thread.sleep(10000000000);
+    try frame.renderWidget(allocator, bordered.widget(), smol_widgets[0]);
+    try frame.renderWidget(allocator, bordered.widget(), smoller_widgets[0]);
+    try frame.renderWidget(allocator, bordered.widget(), smoller_widgets[1]);
+
+    std.Thread.sleep(5000000000);
     try tty.backend.showCursor();
 }

@@ -13,6 +13,8 @@ pub fn build(b: *std.Build) void {
 
     const Example = enum {
         hello,
+        block,
+        paragraph,
     };
 
     const example_option = b.option(Example, "example", "Example to run (default: hello)") orelse .hello;

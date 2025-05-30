@@ -1,6 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const widget = @import("widgets/widget.zig");
+const Text = @import("text/text.zig").Text;
+const Color = @import("style/color.zig").Color;
 
 const Linux = std.os.linux;
 const Posix = std.posix;
@@ -43,6 +45,22 @@ pub const Backend = struct {
 
     pub fn deinit(self: *const Backend, allocator: std.mem.Allocator) void {
         allocator.destroy(self.screen_size);
+    }
+
+    pub fn renderText(self: *const Backend, text: Text) !void {
+        if (text.style.foreground) |fg| {
+            if (text.style.background) |bg| {
+                try self.stdout.writer().print("\x1b[0;{d};{d}m", .{ fg.parseForeground(), bg.parseBackground() });
+            } else {
+                try self.stdout.writer().print("\x1b[0;{d}m", .{ fg.parseForeground() });
+            }
+        } else if (text.style.background) |bg| {
+            try self.stdout.writer().print("\x1b[0;{d};{d}m", .{ 39, bg.parseBackground() });
+        }
+
+        try self.write(text.text);
+
+        try self.stdout.writer().print("\x1b[0;{d};{d}m", .{ 39, 49 });
     }
 
     pub fn write(self: *const Backend, buf: []const u8) !void {

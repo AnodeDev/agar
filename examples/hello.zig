@@ -6,6 +6,9 @@ const Constraint = agar.widget.Constraint;
 const Block = agar.widget.Block;
 const Paragraph = agar.widget.Paragraph;
 const Widget = agar.widget.Widget;
+const Text = agar.text.Text;
+const Style = agar.style.Style;
+const Color = agar.style.Color;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -22,7 +25,10 @@ pub fn main() !void {
     try tty.backend.hideCursor();
 
     const frame = tty.getFrame();
-    const paragraph = Paragraph.init(allocator, "Hello everybody!");
+    var style = Style.init();
+    style.fg(Color.Red);
+    const text = Text.styled(allocator, "Hello everybody!", style);
+    const paragraph = Paragraph.init(allocator, text);
     const area = frame.area();
     const constraints_vertical = [_]Constraint{
         Constraint{ .Fill = 1 },

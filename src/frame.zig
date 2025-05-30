@@ -113,7 +113,7 @@ pub const Frame = struct {
 
                 try self.ptr.backend.moveCursor(rect.x + x_offset, rect.y + y_offset);
 
-                try self.ptr.backend.write(paragraph.text);
+                try self.ptr.backend.renderText(paragraph.text);
             },
             .Block => |block| {
                 switch (block.borders) {

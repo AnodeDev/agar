@@ -1,12 +1,13 @@
 const std = @import("std");
 const Block = @import("block.zig").Block;
 const Widget = @import("widget.zig").Widget;
+const Text = @import("../text/text.zig").Text;
 
 pub const Paragraph = struct {
     block: ?*Block,
-    text: []const u8,
+    text: Text,
 
-    pub fn init(allocator: std.mem.Allocator, text: []const u8) *Paragraph {
+    pub fn init(allocator: std.mem.Allocator, text: Text) *Paragraph {
         const paragraph = allocator.create(Paragraph) catch unreachable;
 
         paragraph.* = .{
@@ -21,6 +22,8 @@ pub const Paragraph = struct {
         if (self.block) |block| {
             allocator.destroy(block);
         }
+
+        self.text.deinit(allocator);
         
         allocator.destroy(self);
     }

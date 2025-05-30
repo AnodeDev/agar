@@ -1,0 +1,66 @@
+pub const Color = union(enum) {
+    Reset,
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    Gray,
+    LightBlack,
+    LightRed,
+    LightGreen,
+    LightYellow,
+    LightBlue,
+    LightMagenta,
+    LightCyan,
+    White,
+    Rgb: [3]u8,
+
+    pub fn parseForeground(self: Color) u8 {
+        return switch (self) {
+            .Reset => @as(u8, 39),
+            .Black => @as(u8, 30),
+            .Red => @as(u8, 31),
+            .Green => @as(u8, 32),
+            .Yellow => @as(u8, 33),
+            .Blue => @as(u8, 34),
+            .Magenta => @as(u8, 35),
+            .Cyan => @as(u8, 36),
+            .Gray => @as(u8, 39),
+            .LightBlack => @as(u8, 90),
+            .LightRed => @as(u8, 91),
+            .LightGreen => @as(u8, 92),
+            .LightYellow => @as(u8, 93),
+            .LightBlue => @as(u8, 94),
+            .LightMagenta => @as(u8, 95),
+            .LightCyan => @as(u8, 96),
+            .White => @as(u8, 97),
+            else => @as(u8, 0),
+        };
+    }
+
+    pub fn parseBackground(self: Color) u8 {
+        return switch (self) {
+            .Reset => @as(u8, 49),
+            .Black => @as(u8, 40),
+            .Red => @as(u8, 41),
+            .Green => @as(u8, 42),
+            .Yellow => @as(u8, 43),
+            .Blue => @as(u8, 44),
+            .Magenta => @as(u8, 45),
+            .Cyan => @as(u8, 46),
+            .Gray => @as(u8, 49),
+            .LightBlack => @as(u8, 100),
+            .LightRed => @as(u8, 101),
+            .LightGreen => @as(u8, 102),
+            .LightYellow => @as(u8, 103),
+            .LightBlue => @as(u8, 104),
+            .LightMagenta => @as(u8, 105),
+            .LightCyan => @as(u8, 106),
+            .White => @as(u8, 107),
+            else => @as(u8, 0),
+        };
+    }
+};

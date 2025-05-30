@@ -9,6 +9,8 @@ const Widget = agar.widget.Widget;
 const Text = agar.text.Text;
 const Style = agar.style.Style;
 const Color = agar.style.Color;
+const Modifier = agar.style.Modifier;
+const Flags = agar.style.Flags;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -27,6 +29,7 @@ pub fn main() !void {
     const frame = tty.getFrame();
     var style = Style.init();
     style.fg(Color.Red);
+    style.addModifier(Flags.BOLD | Flags.UNDERLINED);
     const text = Text.styled(allocator, "Hello everybody!", style);
     const paragraph = Paragraph.init(allocator, text);
     const area = frame.area();

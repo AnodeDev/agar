@@ -48,19 +48,22 @@ pub const Backend = struct {
     }
 
     pub fn renderText(self: *const Backend, text: Text) !void {
+        try text.style.add_modifier.apply();
+        try text.style.sub_modifier.exempt();
+
         if (text.style.foreground) |fg| {
             if (text.style.background) |bg| {
-                try self.stdout.writer().print("\x1b[0;{d};{d}m", .{ fg.parseForeground(), bg.parseBackground() });
+                try self.stdout.writer().print("\x1b[{d};{d}m", .{ fg.parseForeground(), bg.parseBackground() });
             } else {
-                try self.stdout.writer().print("\x1b[0;{d}m", .{ fg.parseForeground() });
+                try self.stdout.writer().print("\x1b[{d}m", .{ fg.parseForeground() });
             }
         } else if (text.style.background) |bg| {
-            try self.stdout.writer().print("\x1b[0;{d};{d}m", .{ 39, bg.parseBackground() });
+            try self.stdout.writer().print("\x1b[{d};{d}m", .{ 39, bg.parseBackground() });
         }
 
         try self.write(text.text);
 
-        try self.stdout.writer().print("\x1b[0;{d};{d}m", .{ 39, 49 });
+        try self.write("\x1b[0m");
     }
 
     pub fn write(self: *const Backend, buf: []const u8) !void {
